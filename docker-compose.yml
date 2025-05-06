@@ -1,0 +1,60 @@
+services:
+  # Servicio para la base de datos MySQL
+  db:
+    image: mysql:8.0
+    container_name: app-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: app_db
+      MYSQL_USER: app_user
+      MYSQL_PASSWORD: app_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./backend/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app-network
+
+  # Servicio para el backend (API)
+  backend:
+    build: ./backend
+    container_name: app-backend
+    restart: always
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+      DB_USER: app_user
+      DB_PASSWORD: app_password
+      DB_NAME: app_db
+      JWT_SECRET: mi_clave_secreta_jwt
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules  # ⬅️ Esta línea evita sobrescribir node_modules
+    networks:
+      - app-network
+
+  # Servicio para el frontend (React)
+  frontend:
+    build: ./frontend
+    container_name: app-frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  db_data:
