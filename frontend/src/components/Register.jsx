@@ -10,41 +10,43 @@ const Register = ({ onRegisterSuccess }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  
+
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validaciones
+
     if (!nombre || !email || !password || !confirmPassword) {
       setError('Todos los campos son obligatorios');
       return;
     }
-    
+
     if (password !== confirmPassword) {
       setError('Las contraseñas no coinciden');
       return;
     }
-    
+
     setLoading(true);
     setError('');
     setSuccess('');
-    
+
     try {
       await axios.post('http://localhost:3001/api/clientes/registro', {
         nombre,
         email,
-        password
+        password,
       });
-      
+
       setSuccess('Registro exitoso. Redirigiendo al inicio de sesión...');
       
-      // Redireccionar después de 2 segundos
+      if (onRegisterSuccess) {
+        onRegisterSuccess();
+      }
+
       setTimeout(() => {
         navigate('/login');
       }, 2000);
-      
+
     } catch (error) {
       if (error.response && error.response.data.error) {
         setError(error.response.data.error);
@@ -61,7 +63,7 @@ const Register = ({ onRegisterSuccess }) => {
       <div className="header">
         <h1>Registro de Usuario</h1>
       </div>
-      
+
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label htmlFor="nombre">Nombre</label>
@@ -73,7 +75,7 @@ const Register = ({ onRegisterSuccess }) => {
             placeholder="Ingrese su nombre"
           />
         </div>
-        
+
         <div className="form-group">
           <label htmlFor="email">Email</label>
           <input
@@ -84,7 +86,7 @@ const Register = ({ onRegisterSuccess }) => {
             placeholder="Ingrese su email"
           />
         </div>
-        
+
         <div className="form-group">
           <label htmlFor="password">Contraseña</label>
           <input
@@ -95,7 +97,7 @@ const Register = ({ onRegisterSuccess }) => {
             placeholder="Ingrese su contraseña"
           />
         </div>
-        
+
         <div className="form-group">
           <label htmlFor="confirmPassword">Confirmar Contraseña</label>
           <input
@@ -106,19 +108,19 @@ const Register = ({ onRegisterSuccess }) => {
             placeholder="Confirme su contraseña"
           />
         </div>
-        
+
         {error && <div className="error">{error}</div>}
         {success && <div className="success">{success}</div>}
-        
-        <button 
-          type="submit" 
-          className="btn btn-primary" 
+
+        <button
+          type="submit"
+          className="btn btn-primary"
           disabled={loading}
         >
           {loading ? 'Registrando...' : 'Registrarse'}
         </button>
       </form>
-      
+
       <div className="toggle-link">
         <p>¿Ya tienes una cuenta? <Link to="/login">Inicia sesión aquí</Link></p>
       </div>
