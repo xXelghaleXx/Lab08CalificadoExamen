@@ -1,39 +1,57 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import 'bootstrap/dist/css/bootstrap.min.css';
 import Login from './components/Login';
 import Register from './components/Register';
-import Clientes from './components/Clientes';
+import Dashboard from './components/Dashboard';
 import Productos from './components/Productos';
 import Navbar from './components/Navbar';
-import { AuthProvider } from './context/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute';
 
-function App() {
+const App = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
+
+  const handleLogin = (userData) => {
+    setUser(userData);
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setIsLoggedIn(false);
+  };
+
   return (
-    <AuthProvider>
-      <Router>
-        <Navbar />
-        <div className="container mt-4">
+    <Router>
+      <div className="App">
+        {isLoggedIn && <Navbar onLogout={handleLogout} />}
+        <div className="container">
           <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/clientes" element={
-              <ProtectedRoute>
-                <Clientes />
-              </ProtectedRoute>
+            <Route path="/login" element={
+              isLoggedIn ? 
+                <Navigate replace to="/dashboard" /> : 
+                <Login onLogin={handleLogin} />
+            } />
+            <Route path="/register" element={
+              isLoggedIn ? 
+                <Navigate replace to="/dashboard" /> : 
+                <Register onRegisterSuccess={() => {}} />
+            } />
+            <Route path="/dashboard" element={
+              isLoggedIn ? 
+                <Dashboard user={user} /> : 
+                <Navigate replace to="/login" />
             } />
             <Route path="/productos" element={
-              <ProtectedRoute>
-                <Productos />
-              </ProtectedRoute>
+              isLoggedIn ? 
+                <Productos /> : 
+                <Navigate replace to="/login" />
             } />
-            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/" element={<Navigate replace to="/login" />} />
           </Routes>
         </div>
-      </Router>
-    </AuthProvider>
+      </div>
+    </Router>
   );
-}
+};
 
 export default App;

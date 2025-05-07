@@ -1,98 +1,84 @@
-import React, { useState, useContext } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import axios from 'axios';
 
-const Login = () => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
+const Login = ({ onLogin }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  
-  const { login } = useContext(AuthContext);
-  const navigate = useNavigate();
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    
+    if (!email || !password) {
+      setError('Todos los campos son obligatorios');
+      return;
+    }
+    
     setLoading(true);
+    setError('');
     
     try {
-      const result = await login(formData);
+      const response = await axios.post('http://localhost:3001/api/clientes/login', {
+        email,
+        password
+      });
       
-      if (result.success) {
-        navigate('/clientes');
-      } else {
-        setError(result.message);
-      }
+      onLogin(response.data.cliente);
     } catch (error) {
-      setError('Error al iniciar sesión');
+      if (error.response && error.response.data.error) {
+        setError(error.response.data.error);
+      } else {
+        setError('Error al iniciar sesión. Intente nuevamente.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="row justify-content-center mt-5">
-      <div className="col-md-6">
-        <div className="card">
-          <div className="card-header bg-primary text-white">
-            <h4 className="mb-0">Iniciar Sesión</h4>
-          </div>
-          <div className="card-body">
-            {error && (
-              <div className="alert alert-danger" role="alert">
-                {error}
-              </div>
-            )}
-            <form onSubmit={handleSubmit}>
-              <div className="mb-3">
-                <label htmlFor="email" className="form-label">Email</label>
-                <input 
-                  type="email" 
-                  className="form-control" 
-                  id="email" 
-                  name="email" 
-                  value={formData.email} 
-                  onChange={handleChange} 
-                  required 
-                />
-              </div>
-              <div className="mb-3">
-                <label htmlFor="password" className="form-label">Contraseña</label>
-                <input 
-                  type="password" 
-                  className="form-control" 
-                  id="password" 
-                  name="password" 
-                  value={formData.password} 
-                  onChange={handleChange} 
-                  required 
-                />
-              </div>
-              <button 
-                type="submit" 
-                className="btn btn-primary w-100" 
-                disabled={loading}
-              >
-                {loading ? 'Cargando...' : 'Iniciar Sesión'}
-              </button>
-            </form>
-            <div className="mt-3 text-center">
-              <p>
-                ¿No tienes una cuenta? <Link to="/register">Regístrate aquí</Link>
-              </p>
-            </div>
-          </div>
+    <div className="login-box">
+      <div className="header">
+        <h1>Iniciar Sesión</h1>
+      </div>
+      
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label htmlFor="email">Email</label>
+          <input
+            type="email"
+            id="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Ingrese su email"
+          />
         </div>
+        
+        <div className="form-group">
+          <label htmlFor="password">Contraseña</label>
+          <input
+            type="password"
+            id="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Ingrese su contraseña"
+          />
+        </div>
+        
+        {error && <div className="error">{error}</div>}
+        
+        <button 
+          type="submit" 
+          className="btn btn-primary" 
+          disabled={loading}
+        >
+          {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+        </button>
+      </form>
+      
+      <div className="toggle-link">
+        <p>¿No tienes una cuenta? <Link to="/register">Regístrate aquí</Link></p>
       </div>
     </div>
   );

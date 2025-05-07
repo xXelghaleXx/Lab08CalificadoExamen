@@ -1,133 +1,129 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext';
+import axios from 'axios';
 
-const Register = () => {
-  const [formData, setFormData] = useState({
-    nombre: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
-  });
+const Register = ({ onRegisterSuccess }) => {
+  const [nombre, setNombre] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   
-  const { register } = useContext(AuthContext);
   const navigate = useNavigate();
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
     
-    // Validar que las contraseñas coincidan
-    if (formData.password !== formData.confirmPassword) {
+    // Validaciones
+    if (!nombre || !email || !password || !confirmPassword) {
+      setError('Todos los campos son obligatorios');
+      return;
+    }
+    
+    if (password !== confirmPassword) {
       setError('Las contraseñas no coinciden');
       return;
     }
     
     setLoading(true);
+    setError('');
+    setSuccess('');
     
     try {
-      const { nombre, email, password } = formData;
-      const result = await register({ nombre, email, password });
+      await axios.post('http://localhost:3001/api/clientes/registro', {
+        nombre,
+        email,
+        password
+      });
       
-      if (result.success) {
-        navigate('/clientes');
-      } else {
-        setError(result.message);
-      }
+      setSuccess('Registro exitoso. Redirigiendo al inicio de sesión...');
+      
+      // Redireccionar después de 2 segundos
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
+      
     } catch (error) {
-      setError('Error al registrar el usuario');
+      if (error.response && error.response.data.error) {
+        setError(error.response.data.error);
+      } else {
+        setError('Error al registrar. Intente nuevamente.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="row justify-content-center mt-5">
-      <div className="col-md-6">
-        <div className="card">
-          <div className="card-header bg-primary text-white">
-            <h4 className="mb-0">Registro de Cliente</h4>
-          </div>
-          <div className="card-body">
-            {error && (
-              <div className="alert alert-danger" role="alert">
-                {error}
-              </div>
-            )}
-            <form onSubmit={handleSubmit}>
-              <div className="mb-3">
-                <label htmlFor="nombre" className="form-label">Nombre</label>
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  id="nombre" 
-                  name="nombre" 
-                  value={formData.nombre} 
-                  onChange={handleChange} 
-                  required 
-                />
-              </div>
-              <div className="mb-3">
-                <label htmlFor="email" className="form-label">Email</label>
-                <input 
-                  type="email" 
-                  className="form-control" 
-                  id="email" 
-                  name="email" 
-                  value={formData.email} 
-                  onChange={handleChange} 
-                  required 
-                />
-              </div>
-              <div className="mb-3">
-                <label htmlFor="password" className="form-label">Contraseña</label>
-                <input 
-                  type="password" 
-                  className="form-control" 
-                  id="password" 
-                  name="password" 
-                  value={formData.password} 
-                  onChange={handleChange} 
-                  required 
-                />
-              </div>
-              <div className="mb-3">
-                <label htmlFor="confirmPassword" className="form-label">Confirmar Contraseña</label>
-                <input 
-                  type="password" 
-                  className="form-control" 
-                  id="confirmPassword" 
-                  name="confirmPassword" 
-                  value={formData.confirmPassword} 
-                  onChange={handleChange} 
-                  required 
-                />
-              </div>
-              <button 
-                type="submit" 
-                className="btn btn-primary w-100" 
-                disabled={loading}
-              >
-                {loading ? 'Cargando...' : 'Registrarse'}
-              </button>
-            </form>
-            <div className="mt-3 text-center">
-              <p>
-                ¿Ya tienes una cuenta? <Link to="/login">Inicia sesión aquí</Link>
-              </p>
-            </div>
-          </div>
+    <div className="login-box">
+      <div className="header">
+        <h1>Registro de Usuario</h1>
+      </div>
+      
+      <form onSubmit={handleSubmit}>
+        <div className="form-group">
+          <label htmlFor="nombre">Nombre</label>
+          <input
+            type="text"
+            id="nombre"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            placeholder="Ingrese su nombre"
+          />
         </div>
+        
+        <div className="form-group">
+          <label htmlFor="email">Email</label>
+          <input
+            type="email"
+            id="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Ingrese su email"
+          />
+        </div>
+        
+        <div className="form-group">
+          <label htmlFor="password">Contraseña</label>
+          <input
+            type="password"
+            id="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Ingrese su contraseña"
+          />
+        </div>
+        
+        <div className="form-group">
+          <label htmlFor="confirmPassword">Confirmar Contraseña</label>
+          <input
+            type="password"
+            id="confirmPassword"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="Confirme su contraseña"
+          />
+        </div>
+        
+        {error && <div className="error">{error}</div>}
+        {success && <div className="success">{success}</div>}
+        
+        <button 
+          type="submit" 
+          className="btn btn-primary" 
+          disabled={loading}
+        >
+          {loading ? 'Registrando...' : 'Registrarse'}
+        </button>
+      </form>
+      
+      <div className="toggle-link">
+        <p>¿Ya tienes una cuenta? <Link to="/login">Inicia sesión aquí</Link></p>
       </div>
     </div>
   );
 };
+
+export default Register;

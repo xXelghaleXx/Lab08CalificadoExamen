@@ -1,59 +1,55 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { AuthContext } from '../context/AuthContext';
 
 const Productos = () => {
   const [productos, setProductos] = useState([]);
+  const [filteredProductos, setFilteredProductos] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  
-  const { getToken } = useContext(AuthContext);
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     const fetchProductos = async () => {
       try {
-        const token = getToken();
-        const response = await axios.get('http://localhost:5000/api/productos', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
+        const response = await axios.get('http://localhost:3001/api/productos');
         setProductos(response.data);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error al obtener productos:', error);
-        setError('Error al cargar la lista de productos');
+        setFilteredProductos(response.data);
+      } catch (err) {
+        console.error('Error al obtener productos:', err);
+        setError('Error al cargar la lista de productos. Por favor, intente nuevamente.');
+      } finally {
         setLoading(false);
       }
     };
 
     fetchProductos();
-  }, [getToken]);
+  }, []);
 
   const handleSearch = async () => {
+    if (!searchTerm.trim()) {
+      setFilteredProductos(productos);
+      return;
+    }
+
+    setIsSearching(true);
+    
     try {
-      setLoading(true);
-      const token = getToken();
-      let url = 'http://localhost:5000/api/productos';
-      
-      if (searchTerm.trim()) {
-        url = `http://localhost:5000/api/productos/buscar?nombre=${searchTerm}`;
-      }
-      
-      const response = await axios.get(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      setProductos(response.data);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error al buscar productos:', error);
-      setError('Error al buscar productos');
-      setLoading(false);
+      const response = await axios.get(`http://localhost:3001/api/productos/buscar?termino=${searchTerm}`);
+      setFilteredProductos(response.data);
+    } catch (err) {
+      console.error('Error al buscar productos:', err);
+      setError('Error al buscar productos. Por favor, intente nuevamente.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    setSearchTerm(e.target.value);
+    
+    if (!e.target.value.trim()) {
+      setFilteredProductos(productos);
     }
   };
 
@@ -65,80 +61,65 @@ const Productos = () => {
 
   if (loading) {
     return (
-      <div className="d-flex justify-content-center mt-5">
-        <div className="spinner-border" role="status">
-          <span className="visually-hidden">Cargando...</span>
-        </div>
+      <div className="card">
+        <h2>Cargando productos...</h2>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="card">
+        <h2>Error</h2>
+        <p className="error">{error}</p>
+        <button 
+          className="btn btn-primary" 
+          onClick={() => window.location.reload()}
+        >
+          Reintentar
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="container mt-4">
-      <h2>Lista de Productos</h2>
-      
-      {error && (
-        <div className="alert alert-danger" role="alert">
-          {error}
-        </div>
-      )}
-
-      <div className="card mb-4">
-        <div className="card-body">
-          <div className="row g-3">
-            <div className="col-md-8">
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Buscar productos por nombre..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyPress={handleKeyPress}
-              />
-            </div>
-            <div className="col-md-4">
-              <button 
-                className="btn btn-primary w-100" 
-                onClick={handleSearch}
-              >
-                Buscar
-              </button>
-            </div>
-          </div>
-        </div>
+    <div>
+      <div className="header">
+        <h1>Catálogo de Productos</h1>
       </div>
 
       <div className="card">
-        <div className="card-body">
-          {productos.length === 0 ? (
-            <p className="text-center">No se encontraron productos</p>
-          ) : (
-            <div className="table-responsive">
-              <table className="table table-striped table-hover">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Nombre</th>
-                    <th>Descripción</th>
-                    <th>Precio</th>
-                    <th>Stock</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {productos.map((producto) => (
-                    <tr key={producto.id}>
-                      <td>{producto.id}</td>
-                      <td>{producto.nombre}</td>
-                      <td>{producto.descripcion}</td>
-                      <td>${producto.precio.toFixed(2)}</td>
-                      <td>{producto.stock}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+        <div className="search-box">
+          <input
+            type="text"
+            placeholder="Buscar productos..."
+            value={searchTerm}
+            onChange={handleInputChange}
+            onKeyPress={handleKeyPress}
+          />
+          <button 
+            className="btn btn-primary" 
+            onClick={handleSearch}
+            disabled={isSearching}
+          >
+            {isSearching ? 'Buscando...' : 'Buscar'}
+          </button>
         </div>
+
+        {filteredProductos.length === 0 ? (
+          <p>No se encontraron productos.</p>
+        ) : (
+          <div className="product-grid">
+            {filteredProductos.map(producto => (
+              <div key={producto.id} className="product-card">
+                <h3>{producto.nombre}</h3>
+                <p>{producto.descripcion}</p>
+                <p><strong>Precio:</strong> ${producto.precio}</p>
+                <p><strong>Stock:</strong> {producto.stock} unidades</p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
